@@ -379,7 +379,7 @@ void DynamicVoronoi::visualize(const char *filename) {
 
   FILE* F = fopen(filename, "w");
   if (!F) {
-    std::cerr << "could not open 'result.pgm' for writing!\n";
+    std::cerr << "could not open 'result.ppm' for writing!\n";
     return;
   }
   fprintf(F, "P6\n#\n");

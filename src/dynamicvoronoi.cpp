@@ -385,22 +385,24 @@ void DynamicVoronoi::visualize(const char *filename) {
   fprintf(F, "P6\n#\n");
   fprintf(F, "%d %d\n255\n", sizeX, sizeY);
 
+  //fputc()执行3次，其实是依次对一个像素的RGB颜色赋值
   for(int y = sizeY-1; y >=0; y--){      
     for(int x = 0; x<sizeX; x++){	
       unsigned char c = 0;
       if (alternativeDiagram!=NULL && (alternativeDiagram[x][y] == free || alternativeDiagram[x][y]==voronoiKeep)) {
+        //和alternative模式相关，先不用管
         fputc( 255, F );
         fputc( 0, F );
         fputc( 0, F );
-      } else if(isVoronoi(x,y)){
+      } else if(isVoronoi(x,y)){  //画Voronoi边
         fputc( 0, F );
         fputc( 0, F );
         fputc( 255, F );
-      } else if (data[x][y].sqdist==0) {
+      } else if (data[x][y].sqdist==0) {  //填充障碍物
         fputc( 0, F );
         fputc( 0, F );
         fputc( 0, F );
-      } else {
+      } else {    //填充Voronoi区块内部
         float f = 80+(sqrt(data[x][y].sqdist)*10);
         if (f>255) f=255;
         if (f<0) f=0;

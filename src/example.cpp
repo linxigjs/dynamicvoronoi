@@ -48,8 +48,8 @@ void loadPGM( std::istream &is, int *sizeX, int *sizeY, bool ***map ) {
 
 void loadPNG(std::string filepath, int *sizeX, int *sizeY, bool ***map ) {
   cv::Mat img = cv::imread(filepath, 0);
-  cv::imshow("source map", img);
-  cv::waitKey();
+//  cv::imshow("source map", img);
+//  cv::waitKey();
 
   *sizeX = img.cols;
   *sizeY = img.rows;

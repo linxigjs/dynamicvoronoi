@@ -3,6 +3,9 @@
 #include <iostream>
 #include <fstream>
 #include <string.h>
+#include <opencv2/opencv.hpp>
+
+using namespace std;
 
 void loadPGM( std::istream &is, int *sizeX, int *sizeY, bool ***map ) {
   std::string tag;
@@ -43,9 +46,34 @@ void loadPGM( std::istream &is, int *sizeX, int *sizeY, bool ***map ) {
   }
 }
 
+void loadPNG(std::string filepath, int *sizeX, int *sizeY, bool ***map ) {
+  cv::Mat img = cv::imread(filepath, 0);
+  cv::imshow("source map", img);
+  cv::waitKey();
+
+  *sizeX = img.cols;
+  *sizeY = img.rows;
+  *map = new bool*[*sizeX];
+
+  for (int x=0; x<*sizeX; x++) {
+    (*map)[x] = new bool[*sizeY];
+  }
+  for (int y=*sizeY-1; y>=0; y--) {
+    for (int x=0; x<*sizeX; x++) {
+      int c = static_cast<int>(img.at<uchar>(y,x));
+      if (c < 1) {
+        (*map)[x][y] = true; // 黑色，cell is occupied
+      }
+      else {
+        (*map)[x][y] = false; // 白色，cell is free
+      }
+    }
+  }
+}
+
 
 int main( int argc, char *argv[] ) {
-
+/*
   if(argc<2 || argc>3 || (argc==3 && !(strcmp(argv[2],"prune")==0 || strcmp(argv[2],"pruneAlternative")==0))) {
     std::cerr<<"usage: "<<argv[0]<<" <pgm map> [prune|pruneAlternative]\n";
     exit(-1);
@@ -73,16 +101,27 @@ int main( int argc, char *argv[] ) {
   loadPGM( is, &sizeX, &sizeY, &map );
   is.close();
   fprintf(stderr, "Map loaded (%dx%d).\n", sizeX, sizeY);
+*/
+
+  bool **map=NULL;
+  int sizeX, sizeY;
+  loadPNG("/home/goujs/BigDisk/CLionProjects/origin_dynamicvoronoi/input_map_img/sin_lane.png", &sizeX, &sizeY, &map );
+  bool doPrune = true;
+  bool doPruneAlternative = false;
 
   // create the voronoi object and initialize it with the map
   DynamicVoronoi voronoi;
   voronoi.initializeMap(sizeX, sizeY, map);
   voronoi.update(); // update distance map and Voronoi diagram
-  if (doPrune) voronoi.prune();  // prune the Voronoi
-  if (doPruneAlternative) voronoi.updateAlternativePrunedDiagram();  // prune the Voronoi
+  if (doPrune) {
+    voronoi.prune();  // prune the Voronoi
+  }
+  if (doPruneAlternative) {
+    voronoi.updateAlternativePrunedDiagram();  // prune the Voronoi
+  }
 
   voronoi.visualize("initial.ppm");
-  std::cerr << "Generated initial frame.\n";
+  std::cout << "Generated initial frame.\n";
 
   // now perform some updates with random obstacles
   char filename[20];
@@ -96,10 +135,12 @@ int main( int argc, char *argv[] ) {
     }
     voronoi.exchangeObstacles(newObstacles); // register the new obstacles (old ones will be removed)
     voronoi.update();
-    if (doPrune) voronoi.prune();
+    if (doPrune) {
+      voronoi.prune();
+    }
     sprintf(filename, "update_%03d.ppm", frame);
     voronoi.visualize(filename);
-    std::cerr << "Performed update with random obstacles.\n";
+    std::cout << "Performed update with random obstacles.\n";
   }
 
   // now remove all random obstacles again.
@@ -107,9 +148,11 @@ int main( int argc, char *argv[] ) {
   std::vector<IntPoint> empty;
   voronoi.exchangeObstacles(empty);
   voronoi.update();
-  if (doPrune) voronoi.prune();
+  if (doPrune) {
+    voronoi.prune();
+  }
   voronoi.visualize("final.ppm");
-  std::cerr << "Done with final update (all random obstacles removed).\n";
-  std::cerr << "Check initial.ppm, update_???.ppm and final.ppm.\n";
+  std::cout << "Done with final update (all random obstacles removed).\n";
+  std::cout << "Check initial.ppm, update_???.ppm and final.ppm.\n";
   return 0;
 }

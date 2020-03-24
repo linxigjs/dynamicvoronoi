@@ -10,6 +10,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 
 include_directories(include)
 
+find_package(OpenCV REQUIRED core highgui imgproc imgcodecs)
+include_directories(${OpenCV_INCLUDE_DIRS})
+
+
 add_library(dynamicvoronoilib src/dynamicvoronoi.cpp
         include/bucketedqueue.h
         include/bucketedqueue.hxx
@@ -17,5 +21,5 @@ add_library(dynamicvoronoilib src/dynamicvoronoi.cpp
         include/point.h)
 
 add_executable(voronoi_example src/example.cpp)
-target_link_libraries(voronoi_example dynamicvoronoilib)
+target_link_libraries(voronoi_example dynamicvoronoilib ${OpenCV_LIBS})
 

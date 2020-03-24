@@ -1,0 +1,12 @@
+CHANGELOG for dynamicvoronoi
+http://www.informatik.uni-freiburg.de/~lau/dynamicvoronoi/
+
+0.21
+* changing ppm headers for better compatibility
+* changing build structure
+
+0.2
+* prune switch was not used in example.cpp
+
+0.1
+* initial release

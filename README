@@ -1,0 +1,32 @@
+Dynamic Voronoi library
+
+#### INSTALL ####
+cd build
+cmake ../src
+make
+
+
+#### TEST ####
+
+bin/example testmap.pgm
+or
+bin/example testmap.pgm prune
+
+
+#### HOW TO USE ####
+
+// map is an int**, storing 0 for free and 1 for occupied
+DynamicVoronoi voronoi;
+voronoi.initializeMap(sizeX, sizeY, map);
+voronoi.update();
+voronoi.prune();
+voronoi.visualize("initial.ppm");
+
+// newObstacles ist a std::vector<IntPoint>,
+// each IntPoint has fields x and y 
+// that store the cell index of the new obstacles
+
+voronoi.exchangeObstacles(newObstacles);
+voronoi.update();
+voronoi.prune();
+voronoi.visualize("final.ppm");

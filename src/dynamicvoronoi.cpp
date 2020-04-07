@@ -458,14 +458,16 @@ void DynamicVoronoi::visualize(const char *filename) {
 
 void DynamicVoronoi::prune() {
   // filler
+  //先遍历pruneQueue_中的元素，判断是否要加入到sortedPruneQueue_，（为什么要这一步？？？）
+  //再遍历sortedPruneQueue_中的元素，判断其是剪枝、保留、重试。
   while(!pruneQueue_.empty()) {
     INTPOINT p = pruneQueue_.front();
     pruneQueue_.pop();
     int x = p.x;
     int y = p.y;
 
-    if (data_[x][y].voronoi==occupied) continue;
-    if (data_[x][y].voronoi==freeQueued) continue;
+    if (data_[x][y].voronoi==occupied) continue;    //如果(x,y)是occupied，无需处理，不可能是Voronoi
+    if (data_[x][y].voronoi==freeQueued) continue;  //如果(x,y)是freeQueued，已经加入到sortedPruneQueue_，略过
 
     data_[x][y].voronoi = freeQueued;
     sortedPruneQueue_.push(data_[x][y].sqdist, p);
@@ -488,6 +490,7 @@ void DynamicVoronoi::prune() {
 
     if (x+2<sizeX_ && r.voronoi==occupied) {
       // fill to the right
+      //如果r的上下左右4个元素都!=occupied
       if (tr.voronoi!=occupied && br.voronoi!=occupied && data_[x+2][y].voronoi!=occupied) {
         r.voronoi = freeQueued;
         sortedPruneQueue_.push(r.sqdist, INTPOINT(x+1,y));
@@ -496,6 +499,7 @@ void DynamicVoronoi::prune() {
     }
     if (x-2>=0 && l.voronoi==occupied) {
       // fill to the left
+      //如果l的上下左右4个元素都!=occupied
       if (tl.voronoi!=occupied && bl.voronoi!=occupied && data_[x-2][y].voronoi!=occupied) {
         l.voronoi = freeQueued;
         sortedPruneQueue_.push(l.sqdist, INTPOINT(x-1,y));
@@ -504,6 +508,7 @@ void DynamicVoronoi::prune() {
     }
     if (y+2<sizeY_ && t.voronoi==occupied) {
       // fill to the top
+      //如果t的上下左右4个元素都!=occupied
       if (tr.voronoi!=occupied && tl.voronoi!=occupied && data_[x][y+2].voronoi!=occupied) {
         t.voronoi = freeQueued;
         sortedPruneQueue_.push(t.sqdist, INTPOINT(x,y+1));
@@ -512,6 +517,7 @@ void DynamicVoronoi::prune() {
     }
     if (y-2>=0 && b.voronoi==occupied) {
       // fill to the bottom
+      //如果b的上下左右4个元素都!=occupied
       if (br.voronoi!=occupied && bl.voronoi!=occupied && data_[x][y-2].voronoi!=occupied) {
         b.voronoi = freeQueued;
         sortedPruneQueue_.push(b.sqdist, INTPOINT(x,y-1));
@@ -519,7 +525,6 @@ void DynamicVoronoi::prune() {
       }
     }
   }
-
 
   while(!sortedPruneQueue_.empty()) {
     INTPOINT p = sortedPruneQueue_.pop();
@@ -531,15 +536,20 @@ void DynamicVoronoi::prune() {
     }
 
     markerMatchResult r = markerMatch(p.x,p.y);
-    if (r==pruned) c.voronoi = voronoiPrune;
-    else if (r==keep) c.voronoi = voronoiKeep;
-    else { // r==retry
+    if (r==pruned) {
+      c.voronoi = voronoiPrune;     //对(x,y)即c剪枝
+    }
+    else if (r==keep) {
+      c.voronoi = voronoiKeep;      //对(x,y)即c保留，成为Voronoi的边
+    }
+    else {
       c.voronoi = voronoiRetry;
-      //      printf("RETRY %d %d\n", x, sizeY-1-y);
       pruneQueue_.push(p);
     }
     data_[p.x][p.y] = c;
 
+    //把需要retry的元素由pruneQueue_转移到sortedPruneQueue_
+    //这样可以继续本while()循环，直到pruneQueue_和sortedPruneQueue_都为空
     if (sortedPruneQueue_.empty()) {
       while (!pruneQueue_.empty()) {
         INTPOINT p = pruneQueue_.front();
@@ -548,7 +558,6 @@ void DynamicVoronoi::prune() {
       }
     }
   }
-  //  printf("match: %d\nnomat: %d\n", matchCount, noMatchCount);
 }
 
 void DynamicVoronoi::updateAlternativePrunedDiagram() {
@@ -705,54 +714,60 @@ int DynamicVoronoi::getNumVoronoiNeighborsAlternative(int x, int y) {
   return count;
 }
 
-
-
+//根据(x,y)邻居栅格的连接模式，判断是否要对(x,y)剪枝
 DynamicVoronoi::markerMatchResult DynamicVoronoi::markerMatch(int x, int y) {
   // implementation of connectivity patterns
   bool f[8];
-
   int nx, ny;
   int dx, dy;
-
   int i=0;
-  int count=0;
-  //  int obstacleCount=0;
+  //voroCount是对所有邻居栅格的统计，voroCountFour是对上下左右4个邻居栅格的统计
   int voroCount=0;
   int voroCountFour=0;
 
   for (dy=1; dy>=-1; dy--) {
     ny = y+dy;
     for (dx=-1; dx<=1; dx++) {
-      if (dx || dy) {
+      if (dx || dy) {   //不考虑(x,y)点
         nx = x+dx;
         dataCell nc = data_[nx][ny];
         int v = nc.voronoi;
-        bool b = (v<=free && v!=voronoiPrune);
-        //	if (v==occupied) obstacleCount++;
+        bool b = (v<=free && v!=voronoiPrune);    //既不是occupied又不是voronoiPrune，即可能保留的栅格
         f[i] = b;
         if (b) {
           voroCount++;
-          if (!(dx && dy)) voroCountFour++;
+          if (!(dx && dy)) {      //对上下左右4个点
+            voroCountFour++;
+          }
         }
-        if (b && !(dx && dy) ) count++;
-        //	if (v<=free && !(dx && dy)) voroCount++;
         i++;
       }
     }
   }
+  // i和位置的对应关系如下：
+  //    | 0 | 1 | 2 |
+  //    | 3 |   | 4 |
+  //    | 5 | 6 | 7 |
+  //8个邻居栅格中最多有2个，上下左右只有1个可能保留的栅格
   if (voroCount<3 && voroCountFour==1 && (f[1] || f[3] || f[4] || f[6])) {
-    //    assert(voroCount<2);
-    //    if (voroCount>=2) printf("voro>2 %d %d\n", x, y);
     return keep;
   }
 
   // 4-connected
+  //    | 0 | 1 | ? |               | ? | 1 | 0 |             | ? | ? | ? |             | ? | ? | ? |
+  //    | 1 |   | ? |               | ? |   | 1 |             | 1 |   | ? |             | ? |   | 1 |
+  //    | ? | ? | ? |               | ? | ? | ? |             | 0 | 1 | ? |             | ? | 1 | 0 |
+  //对应《Efficient Grid-Based Spatial Representations for Robot Navigation in Dynamic Environments》中的4-connected P14模式，旋转3次90度
   if ((!f[0] && f[1] && f[3]) || (!f[2] && f[1] && f[4]) || (!f[5] && f[3] && f[6]) || (!f[7] && f[6] && f[4])) return keep;
+
+  //    | ? | 0 | ? |                       | ? | 1 | ? |
+  //    | 1 |   | 1 |                       | 0 |   | 0 |
+  //    | ? | 0 | ? |                       | ? | 1 | ? |
+  //对应文章中的4-connected P24模式，旋转1次90度
   if ((f[3] && f[4] && !f[1] && !f[6]) || (f[1] && f[6] && !f[3] && !f[4])) return keep;
 
-
-
   // keep voro cells inside of blocks and retry later
+  //(x,y)周围可能保留的栅格很多，此时无法判断是否要对(x,y)剪枝
   if (voroCount>=5 && voroCountFour>=3 && data_[x][y].voronoi!=voronoiRetry) {
     return retry;
   }

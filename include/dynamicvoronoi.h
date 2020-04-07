@@ -37,7 +37,7 @@ public:
   void updateAlternativePrunedDiagram();
   //! retrieve the alternatively pruned diagram. see updateAlternativePrunedDiagram()
   int** alternativePrunedDiagram(){
-    return alternativeDiagram;
+    return alternativeDiagram_;
   };
   //! retrieve the number of neighbors that are Voronoi nodes (4-connected)
   int getNumVoronoiNeighborsAlternative(int x, int y);
@@ -54,9 +54,9 @@ public:
   void visualize(const char* filename="result.ppm");
 
   //! returns the horizontal size of the workspace/map
-  unsigned int getSizeX() {return sizeX;}
+  unsigned int getSizeX() {return sizeX_;}
   //! returns the vertical size of the workspace/map
-  unsigned int getSizeY() {return sizeY;}
+  unsigned int getSizeY() {return sizeY_;}
 
 private:  
   struct dataCell {
@@ -91,29 +91,29 @@ private:
 
   // queues
 
-  BucketPrioQueue<INTPOINT> open;
-  std::queue<INTPOINT> pruneQueue;
-  BucketPrioQueue<INTPOINT> sortedPruneQueue;
+  BucketPrioQueue<INTPOINT> open_;
+  std::queue<INTPOINT> pruneQueue_;
+  BucketPrioQueue<INTPOINT> sortedPruneQueue_;
 
-  std::vector<INTPOINT> removeList;
-  std::vector<INTPOINT> addList;
-  std::vector<INTPOINT> lastObstacles;
+  std::vector<INTPOINT> removeList_;
+  std::vector<INTPOINT> addList_;
+  std::vector<INTPOINT> lastObstacles_;
 
   // maps
-  int sizeY;
-  int sizeX;
-  dataCell** data;
-  bool** gridMap;
-  bool allocatedGridMap;
+  int sizeY_;
+  int sizeX_;
+  dataCell** data_;
+  bool** gridMap_;
+  bool allocatedGridMap_;
 
   // parameters
-  int padding;
-  double doubleThreshold;
+  int padding_;
+  double doubleThreshold_;
 
-  double sqrt2;
+  double sqrt2_;
 
   //  dataCell** getData(){ return data; }
-  int** alternativeDiagram;
+  int** alternativeDiagram_;
 };
 
 

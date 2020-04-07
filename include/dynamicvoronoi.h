@@ -103,7 +103,7 @@ private:
   int sizeY_;
   int sizeX_;
   dataCell** data_;
-  bool** gridMap_;          //就是Voronoi图吗？表示是否是Voronoi边上的点
+  bool** gridMap_;          //true是被占用，false是没有被占用
   bool allocatedGridMap_;   //是否为gridmap分配了内存的标志位
 
   // parameters

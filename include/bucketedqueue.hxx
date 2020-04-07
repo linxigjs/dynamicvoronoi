@@ -18,7 +18,10 @@ bool BucketPrioQueue<T>::empty() {
 template <class T>
 void BucketPrioQueue<T>::push(int prio, T t) {
   buckets[prio].push(t);
-  if (nextPop == buckets.end() || prio < nextPop->first) nextPop = buckets.find(prio);
+  //如果buckets是空，或者prio是最小（最高）优先级，那prio就是第一个要pop的元素
+  if (nextPop == buckets.end() || prio < nextPop->first) {
+    nextPop = buckets.find(prio);
+  }
   count++;
 }
 

@@ -64,6 +64,7 @@ void DynamicVoronoi::initializeEmpty(int _sizeX, int _sizeY, bool initGridMap) {
   c.queueing = fwNotQueued;
   c.needsRaise = false;
 
+  //为数组填充初始化数据
   for (int x=0; x<sizeX_; x++)
     for (int y=0; y<sizeY_; y++) data_[x][y] = c;
 
@@ -73,17 +74,17 @@ void DynamicVoronoi::initializeEmpty(int _sizeX, int _sizeY, bool initGridMap) {
   }
 }
 
+//输入二值地图gridmap，根据元素是否被占用，更新data_
 void DynamicVoronoi::initializeMap(int _sizeX, int _sizeY, bool** _gridMap) {
   gridMap_ = _gridMap;
   initializeEmpty(_sizeX, _sizeY, false);
 
   for (int x=0; x<sizeX_; x++) {
     for (int y=0; y<sizeY_; y++) {
-      if (gridMap_[x][y]) {
+      if (gridMap_[x][y]) {             //如果gridmap_中的(x,y)被占用了
         dataCell c = data_[x][y];
-        if (!isOccupied(x,y,c)) {
-
-          bool isSurrounded = true;
+        if (!isOccupied(x,y,c)) {       //如果c没有被占用，即data_中的(x,y)没被占用，需要更新
+          bool isSurrounded = true;     //如果在gridmap_中的邻居元素全被占用，isSurrounded = true
           for (int dx=-1; dx<=1; dx++) {
             int nx = x+dx;
             if (nx<=0 || nx>=sizeX_-1) continue;
@@ -92,13 +93,13 @@ void DynamicVoronoi::initializeMap(int _sizeX, int _sizeY, bool** _gridMap) {
               int ny = y+dy;
               if (ny<=0 || ny>=sizeY_-1) continue;
 
-              if (!gridMap_[nx][ny]) {
+              if (!gridMap_[nx][ny]) {  //如果在gridmap_中的邻居元素有任意一个没被占用（就是障碍物边界点），isSurrounded = false
                 isSurrounded = false;
                 break;
               }
             }
           }
-          if (isSurrounded) {
+          if (isSurrounded) {           //如果九宫格全部被占用
             c.obstX = x;
             c.obstY = y;
             c.sqdist = 0;
@@ -106,68 +107,83 @@ void DynamicVoronoi::initializeMap(int _sizeX, int _sizeY, bool** _gridMap) {
             c.voronoi=occupied;
             c.queueing = fwProcessed;
             data_[x][y] = c;
-          } else setObstacle(x,y);
+          } else {
+            setObstacle(x,y);       //不同之处在于：将(x,y)加入addList_
+          }
         }
       }
     }
   }
 }
 
+//要同时更新gridmap和data_
 void DynamicVoronoi::occupyCell(int x, int y) {
-  gridMap_[x][y] = 1;
+  gridMap_[x][y] = 1;     //更新gridmap
   setObstacle(x,y);
 }
+
+//要同时更新gridmap和data_
 void DynamicVoronoi::clearCell(int x, int y) {
-  gridMap_[x][y] = 0;
+  gridMap_[x][y] = 0;     //更新gridmap
   removeObstacle(x,y);
 }
 
+//只更新data_
 void DynamicVoronoi::setObstacle(int x, int y) {
   dataCell c = data_[x][y];
-  if(isOccupied(x,y,c)) return;
+  if(isOccupied(x,y,c)) {                 //如果data_中的(x,y)被占用
+    return;
+  }
 
-  addList_.push_back(INTPOINT(x,y));
+  addList_.push_back(INTPOINT(x,y));      //加入addList_
   c.obstX = x;
   c.obstY = y;
   data_[x][y] = c;
 }
 
+//只更新data_
 void DynamicVoronoi::removeObstacle(int x, int y) {
   dataCell c = data_[x][y];
-  if(isOccupied(x,y,c) == false) return;
+  if(isOccupied(x,y,c) == false) {          //如果data_中的(x,y)没有被占用，无需处理
+    return;
+  }
 
-  removeList_.push_back(INTPOINT(x,y));
+  removeList_.push_back(INTPOINT(x,y));     //将(x,y)加入removeList_
   c.obstX = invalidObstData;
   c.obstY  = invalidObstData;
   c.queueing = bwQueued;
   data_[x][y] = c;
 }
 
+//用新的障碍物信息替换旧的障碍物信息
+//如果points为空，就是清除障碍物；
+//初始时lastObstacles_为空，第一次调用exchangeObstacles()就是纯粹的添加障碍物
 void DynamicVoronoi::exchangeObstacles(std::vector<INTPOINT>& points) {
-
   for (unsigned int i=0; i<lastObstacles_.size(); i++) {
     int x = lastObstacles_[i].x;
     int y = lastObstacles_[i].y;
-
     bool v = gridMap_[x][y];
-    if (v) continue;
+    if (v) {    //如果(x,y)被占用了，不处理，怀疑这里逻辑反了。要移除旧的障碍物，这里应该是(!v)表示没被占用就不处理，占用了就移除
+      continue;
+    }
     removeObstacle(x,y);
   }
-
   lastObstacles_.clear();
 
   for (unsigned int i=0; i<points.size(); i++) {
     int x = points[i].x;
     int y = points[i].y;
     bool v = gridMap_[x][y];
-    if (v) continue;
+    if (v) {    //如果(x,y)被占用了，不处理。否则，添加占用
+      continue;
+    }
     setObstacle(x,y);
     lastObstacles_.push_back(points[i]);
   }
 }
 
 void DynamicVoronoi::update(bool updateRealDist) {
-
+  //将发生状态变化（占用<-->不占用）的元素加入open_优先队列
   commitAndColorize(updateRealDist);
 
   while (!open_.empty()) {
@@ -176,10 +192,13 @@ void DynamicVoronoi::update(bool updateRealDist) {
     int y = p.y;
     dataCell c = data_[x][y];
 
-    if(c.queueing==fwProcessed) continue;
+    if(c.queueing==fwProcessed) {
+      continue;
+    }
 
     if (c.needsRaise) {
       // RAISE
+      //2层for循环，考察8个邻居栅格
       for (int dx=-1; dx<=1; dx++) {
         int nx = x+dx;
         if (nx<=0 || nx>=sizeX_-1) continue;
@@ -188,18 +207,22 @@ void DynamicVoronoi::update(bool updateRealDist) {
           int ny = y+dy;
           if (ny<=0 || ny>=sizeY_-1) continue;
           dataCell nc = data_[nx][ny];
+          //nc有最近障碍物 且 不raise
           if (nc.obstX!=invalidObstData && !nc.needsRaise) {
-            if(!isOccupied(nc.obstX,nc.obstY,data_[nc.obstX][nc.obstY])) {
+            //如果nc原来的最近障碍物消失了
+            if(!isOccupied(nc.obstX, nc.obstY, data_[nc.obstX][nc.obstY])) {
               open_.push(nc.sqdist, INTPOINT(nx,ny));
-              nc.queueing = fwQueued;
-              nc.needsRaise = true;
+              nc.queueing = fwQueued;     //fwQueued表示刚加入open_排队？
+              nc.needsRaise = true;       //需要raise，并清理掉原来的最近障碍物信息
               nc.obstX = invalidObstData;
               nc.obstY = invalidObstData;
-              if (updateRealDist) nc.dist = INFINITY;
+              if (updateRealDist) {
+                nc.dist = INFINITY;
+              }
               nc.sqdist = INT_MAX;
               data_[nx][ny] = nc;
-            } else {
-              if(nc.queueing != fwQueued){
+            } else {        //如果nc原来的最近障碍物还存在
+              if(nc.queueing != fwQueued){    //??
                 open_.push(nc.sqdist, INTPOINT(nx,ny));
                 nc.queueing = fwQueued;
                 data_[nx][ny] = nc;
@@ -209,13 +232,13 @@ void DynamicVoronoi::update(bool updateRealDist) {
         }
       }
       c.needsRaise = false;
-      c.queueing = bwProcessed;
+      c.queueing = bwProcessed;     //bwProcessed表示8个邻居元素raise处理完毕？
       data_[x][y] = c;
     }
-    else if (c.obstX != invalidObstData && isOccupied(c.obstX,c.obstY,data_[c.obstX][c.obstY])) {
-
+    else if (c.obstX != invalidObstData && isOccupied(c.obstX, c.obstY, data_[c.obstX][c.obstY])) {
+      //c是被占据的
       // LOWER
-      c.queueing = fwProcessed;
+      c.queueing = fwProcessed;     //fwProcessed表示8个邻居元素lower处理完毕？
       c.voronoi = occupied;
 
       for (int dx=-1; dx<=1; dx++) {
@@ -230,18 +253,21 @@ void DynamicVoronoi::update(bool updateRealDist) {
             int distx = nx-c.obstX;
             int disty = ny-c.obstY;
             int newSqDistance = distx*distx + disty*disty;
-            bool overwrite =  (newSqDistance < nc.sqdist);
+            bool overwrite =  (newSqDistance < nc.sqdist);    //nc到c的最近障碍物 比 nc到其最近障碍物 更近
             if(!overwrite && newSqDistance==nc.sqdist) {
-              if (nc.obstX == invalidObstData || isOccupied(nc.obstX,nc.obstY,data_[nc.obstX][nc.obstY])==false) overwrite = true;
+              //如果nc没有最近障碍物，或者 nc的最近障碍物消失了
+              if (nc.obstX == invalidObstData || isOccupied(nc.obstX, nc.obstY, data_[nc.obstX][nc.obstY]) == false) {
+                overwrite = true;
+              }
             }
             if (overwrite) {
               open_.push(newSqDistance, INTPOINT(nx,ny));
-              nc.queueing = fwQueued;
+              nc.queueing = fwQueued;     //fwQueued表示加入到open_等待lower()？
               if (updateRealDist) {
                 nc.dist = sqrt((double) newSqDistance);
               }
               nc.sqdist = newSqDistance;
-              nc.obstX = c.obstX;
+              nc.obstX = c.obstX;         //nc的最近障碍物 赋值为c的最近障碍物
               nc.obstY = c.obstY;
             } else {
               checkVoro(x,y,nx,ny,c,nc);
@@ -256,13 +282,15 @@ void DynamicVoronoi::update(bool updateRealDist) {
 }
 
 float DynamicVoronoi::getDistance( int x, int y ) {
-  if( (x>0) && (x<sizeX_) && (y>0) && (y<sizeY_)) return data_[x][y].dist;
+  if( (x>0) && (x<sizeX_) && (y>0) && (y<sizeY_)) {
+    return data_[x][y].dist;
+  }
   else return -INFINITY;
 }
 
 bool DynamicVoronoi::isVoronoi( int x, int y ) {
   dataCell c = data_[x][y];
-  return (c.voronoi==free || c.voronoi==voronoiKeep);
+  return (c.voronoi == free || c.voronoi == voronoiKeep);
 }
 
 bool DynamicVoronoi::isVoronoiAlternative(int x, int y) {
@@ -271,7 +299,9 @@ bool DynamicVoronoi::isVoronoiAlternative(int x, int y) {
 }
 
 void DynamicVoronoi::commitAndColorize(bool updateRealDist) {
+  //addList_和removeList_中是触发Voronoi更新的元素，因此都要加入open_
   // ADD NEW OBSTACLES
+  //addList_中都是障碍物边界点
   for (unsigned int i=0; i<addList_.size(); i++) {
     INTPOINT p = addList_[i];
     int x = p.x;
@@ -279,29 +309,38 @@ void DynamicVoronoi::commitAndColorize(bool updateRealDist) {
     dataCell c = data_[x][y];
 
     if(c.queueing != fwQueued){
-      if (updateRealDist) c.dist = 0;
+      if (updateRealDist) {
+        c.dist = 0;
+      }
       c.sqdist = 0;
       c.obstX = x;
       c.obstY = y;
-      c.queueing = fwQueued;
+      c.queueing = fwQueued;          //已加入open_优先队列
       c.voronoi = occupied;
       data_[x][y] = c;
-      open_.push(0, INTPOINT(x,y));
+      open_.push(0, INTPOINT(x,y));   //加入open_优先队列，加入open_的都是要更新的
     }
   }
 
   // REMOVE OLD OBSTACLES
+  //removeList_中是要清除的障碍物栅格
   for (unsigned int i=0; i<removeList_.size(); i++) {
     INTPOINT p = removeList_[i];
     int x = p.x;
     int y = p.y;
     dataCell c = data_[x][y];
 
-    if (isOccupied(x,y,c)==true) continue; // obstacle was removed and reinserted
-    open_.push(0, INTPOINT(x,y));
-    if (updateRealDist) c.dist  = INFINITY;
+    //removeList_中对应的元素在data_中已经更新过，解除了占用
+    //如果这里又出现了该元素被占用，说明是后来加入的，这里不处理
+    if (isOccupied(x,y,c) == true) {
+      continue; // obstacle was removed and reinserted
+    }
+    open_.push(0, INTPOINT(x,y));   //加入open_优先队列
+    if (updateRealDist) {
+      c.dist  = INFINITY;
+    }
     c.sqdist = INT_MAX;
-    c.needsRaise = true;
+    c.needsRaise = true;            //因为清除了障碍物，最近障碍物距离要更新-增加
     data_[x][y] = c;
   }
   removeList_.clear();
@@ -310,7 +349,6 @@ void DynamicVoronoi::commitAndColorize(bool updateRealDist) {
 
 
 void DynamicVoronoi::checkVoro(int x, int y, int nx, int ny, dataCell& c, dataCell& nc) {
-
   if ((c.sqdist>1 || nc.sqdist>1) && nc.obstX!=invalidObstData) {
     if (abs(c.obstX-nc.obstX) > 1 || abs(c.obstY-nc.obstY) > 1) {
       //compute dist from x,y to obstacle of nx,ny

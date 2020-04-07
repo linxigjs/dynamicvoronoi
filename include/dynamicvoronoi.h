@@ -11,9 +11,9 @@
 
 //! A DynamicVoronoi object computes and updates a distance map and Voronoi diagram.
 class DynamicVoronoi {
-  
+
 public:
-  
+
   DynamicVoronoi();
   ~DynamicVoronoi();
 
@@ -43,7 +43,7 @@ public:
   int getNumVoronoiNeighborsAlternative(int x, int y);
   //! returns whether the specified cell is part of the alternatively pruned diagram. See updateAlternativePrunedDiagram.
   bool isVoronoiAlternative( int x, int y );
-  
+
   //! returns the obstacle distance at the specified location
   float getDistance( int x, int y );
   //! returns whether the specified cell is part of the (pruned) Voronoi graph
@@ -58,11 +58,11 @@ public:
   //! returns the vertical size of the workspace/map
   unsigned int getSizeY() {return sizeY_;}
 
-private:  
+private:
   struct dataCell {
     float dist;
-    char voronoi;
-    char queueing;
+    char voronoi;   //State的枚举值
+    char queueing;  //QueueingState的枚举值
     int obstX;
     int obstY;
     bool needsRaise;
@@ -75,7 +75,7 @@ private:
   typedef enum {pruned, keep, retry} markerMatchResult;
 
 
-  
+
   // methods
   void setObstacle(int x, int y);
   void removeObstacle(int x, int y);
@@ -103,8 +103,8 @@ private:
   int sizeY_;
   int sizeX_;
   dataCell** data_;
-  bool** gridMap_;
-  bool allocatedGridMap_;
+  bool** gridMap_;          //就是Voronoi图吗？表示是否是Voronoi边上的点
+  bool allocatedGridMap_;   //是否为gridmap分配了内存的标志位
 
   // parameters
   int padding_;

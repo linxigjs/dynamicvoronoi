@@ -105,7 +105,7 @@ int main( int argc, char *argv[] ) {
 
   bool **map=NULL;
   int sizeX, sizeY;
-  loadPNG("/home/goujs/BigDisk/CLionProjects/origin_dynamicvoronoi/input_map_img/sin_lane.png", &sizeX, &sizeY, &map );
+  loadPNG("../input_map_img/sin_lane.png", &sizeX, &sizeY, &map );
   bool doPrune = true;
   bool doPruneAlternative = false;
 

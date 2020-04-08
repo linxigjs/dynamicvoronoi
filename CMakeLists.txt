@@ -15,8 +15,8 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall")
 set(CMAKE_CXX_FLAGS_RELEASE "-O2")
 set(CMAKE_CXX_FLAGS_DEBUG "-O0 -g -ggdb")
 
-add_library(dynamicvoronoi dynamicvoronoi.cpp)
+add_library(dynamicvoronoi src/dynamicvoronoi.cpp)
 
-add_executable(example example.cpp)
+add_executable(example src/example.cpp)
 target_link_libraries(example dynamicvoronoi)
 

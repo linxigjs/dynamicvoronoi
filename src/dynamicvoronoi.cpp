@@ -108,7 +108,7 @@ void DynamicVoronoi::initializeMap(int _sizeX, int _sizeY, bool** _gridMap) {
             c.queueing = fwProcessed;
             data_[x][y] = c;
           } else {
-            setObstacle(x,y);       //不同之处在于：将(x,y)加入addList_
+            setObstacle(x,y);           //不同之处在于：将(x,y)加入addList_
           }
         }
       }
@@ -131,11 +131,11 @@ void DynamicVoronoi::clearCell(int x, int y) {
 //只更新data_
 void DynamicVoronoi::setObstacle(int x, int y) {
   dataCell c = data_[x][y];
-  if(isOccupied(x,y,c)) {                 //如果data_中的(x,y)被占用
+  if(isOccupied(x,y,c)) {               //如果data_中的(x,y)被占用
     return;
   }
 
-  addList_.push_back(INTPOINT(x,y));      //加入addList_
+  addList_.push_back(INTPOINT(x,y));    //加入addList_
   c.obstX = x;
   c.obstY = y;
   data_[x][y] = c;
@@ -144,11 +144,11 @@ void DynamicVoronoi::setObstacle(int x, int y) {
 //只更新data_
 void DynamicVoronoi::removeObstacle(int x, int y) {
   dataCell c = data_[x][y];
-  if(isOccupied(x,y,c) == false) {          //如果data_中的(x,y)没有被占用，无需处理
+  if(isOccupied(x,y,c) == false) {      //如果data_中的(x,y)没有被占用，无需处理
     return;
   }
 
-  removeList_.push_back(INTPOINT(x,y));     //将(x,y)加入removeList_
+  removeList_.push_back(INTPOINT(x,y)); //将(x,y)加入removeList_
   c.obstX = invalidObstData;
   c.obstY  = invalidObstData;
   c.queueing = bwQueued;
@@ -221,7 +221,7 @@ void DynamicVoronoi::update(bool updateRealDist) {
               }
               nc.sqdist = INT_MAX;
               data_[nx][ny] = nc;
-            } else {        //如果nc原来的最近障碍物还存在
+            } else {                      //如果nc原来的最近障碍物还存在
               if(nc.queueing != fwQueued){    //??
                 open_.push(nc.sqdist, INTPOINT(nx,ny));
                 nc.queueing = fwQueued;
@@ -232,13 +232,13 @@ void DynamicVoronoi::update(bool updateRealDist) {
         }
       }
       c.needsRaise = false;
-      c.queueing = bwProcessed;     //bwProcessed表示8个邻居元素raise处理完毕？
+      c.queueing = bwProcessed;           //bwProcessed表示8个邻居元素raise处理完毕？
       data_[x][y] = c;
     }
     else if (c.obstX != invalidObstData && isOccupied(c.obstX, c.obstY, data_[c.obstX][c.obstY])) {
       //c是被占据的
       // LOWER
-      c.queueing = fwProcessed;     //fwProcessed表示8个邻居元素lower处理完毕？
+      c.queueing = fwProcessed;           //fwProcessed表示8个邻居元素lower处理完毕？
       c.voronoi = occupied;
 
       for (int dx=-1; dx<=1; dx++) {
@@ -335,12 +335,12 @@ void DynamicVoronoi::commitAndColorize(bool updateRealDist) {
     if (isOccupied(x,y,c) == true) {
       continue; // obstacle was removed and reinserted
     }
-    open_.push(0, INTPOINT(x,y));   //加入open_优先队列
+    open_.push(0, INTPOINT(x,y));     //加入open_优先队列
     if (updateRealDist) {
       c.dist  = INFINITY;
     }
     c.sqdist = INT_MAX;
-    c.needsRaise = true;            //因为清除了障碍物，最近障碍物距离要更新-增加
+    c.needsRaise = true;              //因为清除了障碍物，最近障碍物距离要更新-增加
     data_[x][y] = c;
   }
   removeList_.clear();
@@ -458,7 +458,8 @@ void DynamicVoronoi::visualize(const char *filename) {
 
 void DynamicVoronoi::prune() {
   // filler
-  //先遍历pruneQueue_中的元素，判断是否要加入到sortedPruneQueue_，（为什么要这一步？？？）
+  //先遍历pruneQueue_中的元素，判断是否要加入到sortedPruneQueue_，
+  //这一步的目的是合并紧邻的Voronoi边，将2条边夹着的栅格也设置为备选
   //再遍历sortedPruneQueue_中的元素，判断其是剪枝、保留、重试。
   while(!pruneQueue_.empty()) {
     INTPOINT p = pruneQueue_.front();
@@ -488,9 +489,15 @@ void DynamicVoronoi::prune() {
     t = data_[x][y+1];
     b = data_[x][y-1];
 
+    //文章只提了对待考察栅格判断是否符合模式，这里为什么要对待考察栅格的上下左右4个邻居栅格都判断呢？
+    //我认为判断模式的目的就是将Voronoi边夹着的、包裹的栅格置为备选，因为待考察栅格是备选了，才使得周围栅格可能会被Voronoi边包裹，所以才要逐一检查。
+
     if (x+2<sizeX_ && r.voronoi==occupied) {
       // fill to the right
-      //如果r的上下左右4个元素都!=occupied
+      //如果r的上下左右4个元素都!=occupied，对应文章的P38模式  
+      //    | ? | 1 | ? |
+      //    | 1 |   | 1 |
+      //    | ? | 1 | ? |
       if (tr.voronoi!=occupied && br.voronoi!=occupied && data_[x+2][y].voronoi!=occupied) {
         r.voronoi = freeQueued;
         sortedPruneQueue_.push(r.sqdist, INTPOINT(x+1,y));
@@ -644,7 +651,7 @@ void DynamicVoronoi::updateAlternativePrunedDiagram() {
 }
 
 bool DynamicVoronoi::markerMatchAlternative(int x, int y) {
-// prune if this returns true
+  // prune if this returns true
 
   bool f[8];
 
@@ -652,7 +659,7 @@ bool DynamicVoronoi::markerMatchAlternative(int x, int y) {
   int dx, dy;
 
   int i = 0;
-//  int obstacleCount=0;
+  //  int obstacleCount=0;
   int voroCount = 0;
   for (dy = 1; dy >= -1; dy--) {
     ny = y + dy;
@@ -728,7 +735,7 @@ DynamicVoronoi::markerMatchResult DynamicVoronoi::markerMatch(int x, int y) {
   for (dy=1; dy>=-1; dy--) {
     ny = y+dy;
     for (dx=-1; dx<=1; dx++) {
-      if (dx || dy) {   //不考虑(x,y)点
+      if (dx || dy) {             //不考虑(x,y)点
         nx = x+dx;
         dataCell nc = data_[nx][ny];
         int v = nc.voronoi;

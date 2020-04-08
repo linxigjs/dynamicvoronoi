@@ -298,6 +298,7 @@ bool DynamicVoronoi::isVoronoiAlternative(int x, int y) {
   return (v == free || v == voronoiKeep);
 }
 
+//将发生状态变化（占用<-->不占用）的元素加入open_优先队列
 void DynamicVoronoi::commitAndColorize(bool updateRealDist) {
   //addList_和removeList_中是触发Voronoi更新的元素，因此都要加入open_
   // ADD NEW OBSTACLES

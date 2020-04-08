@@ -70,6 +70,7 @@ private:
   };
 
   typedef enum {voronoiKeep=-4, freeQueued = -3, voronoiRetry=-2, voronoiPrune=-1, free=0, occupied=1} State;
+  //下面这几个枚举状态没搞懂
   typedef enum {fwNotQueued=1, fwQueued=2, fwProcessed=3, bwQueued=4, bwProcessed=1} QueueingState;
   typedef enum {invalidObstData = SHRT_MAX/2} ObstDataState;
   typedef enum {pruned, keep, retry} markerMatchResult;
